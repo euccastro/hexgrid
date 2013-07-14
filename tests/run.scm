@@ -1,6 +1,4 @@
-(use test bindings)
-(load "hexgrid-module.scm")
-(import hexgrid)
+(use test bindings hexgrid srfi-1)
 
 (define (run-tests)
 

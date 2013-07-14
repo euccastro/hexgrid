@@ -25,43 +25,56 @@
 (gl:ClearColor 0.5 0.5 0.5 0.0)
 (gl:PointSize 4)
 
-; XXX: factor out into utilities to fit grids to rectangles and viceversa.
-(define hex-radius 50)
-(define orig (ceiling (* hex-radius 1.2)))
-(define ir (* hex-radius inner-radius))
-(define hr (/ hex-radius 2))
-(define gwidth (inexact->exact
-                (floor (/ (- window-width orig)
-                          (* ir 2)))))
-(define gheight (* 2 (quotient (inexact->exact
-                                 (floor (/ (- window-height orig)
-                                           (* hr 3))))
-                               2)))
-(define (draw-grid width height)
+(define gwidth 9)
+(define gheight 6)
+(define gsize (list gwidth gheight))
+(define hex-radius
+  (bind (world-w1 world-h1) (world-size gsize 1)
+    (let* ((margin (quotient (min window-width window-height) 10))
+           (canvas-w (- window-width (* 2 margin)))
+           (canvas-h (- window-height (* 2 margin))))
+      (min (/ canvas-w world-w1) (/ canvas-h world-h1)))))
+(define wsize (world-size gsize hex-radius))
+(define world-width (car wsize))
+(define world-height (cadr wsize))
+(define orig
+  (list
+    (+ (/ (- window-width world-width) 2)
+       (* inner-radius hex-radius))
+    (+ (/ (- window-height world-height) 2)
+       hex-radius)))
+
+; Make local curried versions.
+(define wrap (compose (horizontal-wrapper gwidth) (vertical-wrapper gheight)))
+(define within-bounds? (within-bounds? gsize))
+(define distance (distance gsize))
+(define grid->world (grid->world orig hex-radius))
+(define world->grid (world->grid orig hex-radius))
+
+(define (draw-grid)
   (gl:Color3f 1.0 1.0 1.0)
-  (do-ec (: i width)
-         (: j height)
-         (draw-hex gl:LINE_LOOP i j))
+  (do-ec (: i gwidth)
+         (: j gheight)
+         (draw-hex gl:LINE_LOOP (list i j)))
   (when mouseover
     (apply gl:Color3f
-           (if (apply within-bounds? width height mouseover)
+           (if (within-bounds? mouseover)
              '(1.0 1.0 0.0)
              '(0.0 1.0 1.0)))
-    (apply draw-hex gl:POLYGON mouseover))
+    (draw-hex gl:POLYGON mouseover))
   (when selected
     (gl:Color3f 1.0 1.0 1.0)
-    (apply draw-hex gl:POLYGON selected)))
+    (draw-hex gl:POLYGON selected)))
 
-; XXX: utility to obtain transformed vertices directly?
-(define (draw-hex gl-type i j)
+(define (draw-hex gl-type cell)
   (gl:LoadIdentity)
-  (receive (x y) (grid->world orig orig hex-radius i j)
+  (bind (x y) (grid->world cell)
     (gl:Translatef x y 0))
   (gl:Scalef hex-radius hex-radius 0)
   (gl:Begin gl-type)
   (for-each
     (lambda (v)
-      (gl:Vertex2f (car v) (cadr v)))
+      (apply gl:Vertex2f v))
     hex-verts)
   (gl:End))
 
@@ -72,13 +85,25 @@
 (define selected #f)
 
 (define (cell-under-mouse sdl-ev)
-  (receive
-    (world->grid orig orig hex-radius
-                 (sdl-event-x ev) (- window-height (sdl-event-y ev)))))
+  (world->grid
+    (list
+      (sdl-event-x ev)
+      ; SDL has y downwards.
+      (- window-height (sdl-event-y ev)))))
+
+(define (print-distances)
+  (when (and mouseover selected)
+    (newline)
+    (display "Distance without cut-around is: ")
+    (display (distance-nowrap mouseover selected))
+    (newline)
+    (display "Distance with cut-around is: ")
+    (display (distance mouseover selected))
+    (newline)))
 
 (let loop ()
   (gl:Clear gl:COLOR_BUFFER_BIT)
-  (draw-grid gwidth gheight)
+  (draw-grid)
   (sdl-gl-swap-buffers)
   (sdl-wait-event! ev)
   (let ((evt-type (sdl-event-type ev)))
@@ -86,16 +111,7 @@
       (let ((new (cell-under-mouse ev)))
         (unless (equal? new mouseover)
           (set! mouseover new)
-          (when selected
-            (display "Distance without cut-around is: ")
-            (display (apply distance (append mouseover selected)))
-            (newline)
-            (display "Distance with cut-around is: ")
-            (display (apply distance
-                            (append mouseover selected
-                                    (list grid-width: gwidth
-                                          grid-height: gheight))))
-            (newline)))))
+          (print-distances))))
     (when (eqv? evt-type SDL_MOUSEBUTTONDOWN)
       (set! selected (cell-under-mouse ev)))
     (when (and selected (eqv? evt-type SDL_KEYDOWN))
@@ -103,9 +119,8 @@
         (for-each
           (lambda (k k2 direction)
             (when (or (eqv? sym k) (eqv? sym k2))
-              (set! selected
-                (receive (i j) (apply direction selected)
-                  (receive (wrap gwidth gheight i j))))))
+              (set! selected (wrap (direction selected)))
+              (print-distances)))
           (list SDLK_j SDLK_u SDLK_y SDLK_g SDLK_b SDLK_n)
           (list SDLK_s SDLK_l SDLK_r SDLK_t SDLK_w SDLK_v)
           directions)))

@@ -4,6 +4,7 @@
    distance-nowrap
    east
    grid->world
+   grid-world-size
    hex-verts
    horizontal-wrapper
    indexer
@@ -11,14 +12,15 @@
    make-grid-vector
    northeast
    northwest
+   origin-to-center
+   radius-to-fit
    row-height
    southeast
    southwest
    vertical-wrapper
    west
    within-bounds?
-   world->grid
-   world-size)
+   world->grid)
   (import scheme chicken srfi-1)
   (include "hex.scm"))
 

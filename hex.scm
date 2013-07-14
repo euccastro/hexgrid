@@ -1,5 +1,5 @@
-; Hexagon torus
-; =============
+; hexgrid
+; =======
 ;
 ; This module defines utility functions to work with hexagonal grids, such as
 ; those used in some wargames.
@@ -256,7 +256,8 @@
 
 (define distance-nowrap (distance '(#f #f)))
 
-(define (world-size grid-size radius)
+; The contrived name highlights that these are world coordinates.
+(define (grid-world-size grid-size radius)
   (bind (grid-width grid-height) grid-size
     (list (* (+ (* grid-width 2)
                 ; Offset for odd rows, if any.
@@ -265,6 +266,28 @@
           (* (+ 1/2 ; bottom half of first row.
                 (* row-height grid-height))
              radius))))
+
+; Calculate largest radius for which our grid will still fit in
+; `container-size`, with `margin` units left at both sides in the most
+; constrained direction.
+(define (radius-to-fit grid-size container-size margin)
+  (let* ((world-1 (grid-world-size grid-size 1))
+         (canvas-size (map (lambda (x) (- x (* 2 margin))) container-size)))
+    (apply min (map / canvas-size world-1))))
+
+; Calculate world/screen coordinates for the 0,0 hexagon, such that the grid
+; will be centered in `container-size`.
+(define (origin-to-center grid-size hex-radius container-size)
+  ; We choose the contrived name grid-world-(width|height) to highlight that
+  ; these are screen/world coordinates.
+  (bind-let (((grid-world-width grid-world-height)
+              (grid-world-size grid-size hex-radius))
+             ((container-width container-height) container-size))
+    (list
+      (+ (/ (- container-width grid-world-width) 2)
+         (* inner-radius hex-radius))
+      (+ (/ (- container-height grid-world-height) 2)
+         hex-radius))))
 
 ; Utility.
 

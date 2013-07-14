@@ -40,26 +40,15 @@
 
 (define window-width 800)
 (define window-height 600)
+(define window-size (list window-width window-height))
+
 (define gwidth 9)
 (define gheight 8)
 (define gsize (list gwidth gheight))
 
-; Calculate largest size that will fit in the screen (with `margin`).
-(define hex-radius
-  (bind (world-w1 world-h1) (world-size gsize 1)
-    (let* ((margin (quotient (min window-width window-height) 10))
-           (canvas-w (- window-width (* 2 margin)))
-           (canvas-h (- window-height (* 2 margin))))
-      (min (/ canvas-w world-w1) (/ canvas-h world-h1)))))
+(define hex-radius (radius-to-fit gsize window-size 20))
 
-; Calculate origin display coordinates that will center the grid in the screen.
-(define orig
-  (bind (world-width world-height) (world-size gsize hex-radius)
-    (list
-      (+ (/ (- window-width world-width) 2)
-         (* inner-radius hex-radius))
-      (+ (/ (- window-height world-height) 2)
-         hex-radius))))
+(define orig (origin-to-center gsize hex-radius window-size))
 
 ; Make local curried versions of various functions sensitive to gsize, orig,
 ; and hex-radius.

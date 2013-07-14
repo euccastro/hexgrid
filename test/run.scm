@@ -118,10 +118,10 @@
       (1 0 1) (-1 0 1) (0 1 1) (-1 1 1) (0 -1 1) (-1 -1 1) (2 3 1)
       (1 1 2) (0 2 2) (1 2 2) (2 2 2) (1 3 2)))
 
-  (test "world-size trivial" (list (* 2 inner-radius) 2.0)
-        (world-size '(1 1) 1))
-  (test "world-size" (list (* 21 inner-radius) 19.5)
-        (world-size (list grid-width grid-height) 3))
+  (test "grid-world-size trivial" (list (* 2 inner-radius) 2.0)
+        (grid-world-size '(1 1) 1))
+  (test "grid-world-size" (list (* 21 inner-radius) 19.5)
+        (grid-world-size (list grid-width grid-height) 3))
   (test-exit))
 
 (run-tests)

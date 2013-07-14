@@ -1,4 +1,4 @@
-(use test bindings hexgrid srfi-1)
+(use test bindings srfi-1 hexgrid)
 
 (define (run-tests)
 

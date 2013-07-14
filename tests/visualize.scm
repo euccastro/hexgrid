@@ -63,9 +63,7 @@
 ; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-(load "hexgrid-module.scm")
-(import hexgrid)
-
+(use hexgrid)
 (use sdl-base gl srfi-42 bindings)
 
 (define window-width 800)

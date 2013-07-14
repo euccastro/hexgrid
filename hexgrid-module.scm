@@ -1,10 +1,12 @@
 (module hexgrid
   (directions
    distance
+   distance-nowrap
    east
    grid->world
    hex-verts
-   index
+   horizontal-wrapper
+   indexer
    inner-radius
    make-grid-vector
    northeast
@@ -12,11 +14,11 @@
    row-height
    southeast
    southwest
+   vertical-wrapper
    west
    within-bounds?
    world->grid
-   world-size
-   wrap)
+   world-size)
   (import scheme chicken srfi-1)
   (include "hex.scm"))
 

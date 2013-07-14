@@ -1,0 +1,6 @@
+((license "BSD")
+ (category graphics)
+ (needs bindings)
+ (test-depends sdl-base gl srfi-42 bindings)
+ (author "Estevo U. C. Castro")
+ (synopsis "Functions to work with hexagonal grids (e.g. for wargames)."))

@@ -75,6 +75,37 @@
 ; Functions that take data that will typically not change much during a
 ; program come curried like this: ((fn permanent args) volatile args), to
 ; make it more convenient to avoid clutter and verbosity.
+;
+; License (BSD)
+; -------------
+;
+; Copyright (C) 2013, Estevo U. C. Castro  <euccastro@gmail.com>
+;
+; All rights reserved.
+;
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions are met:
+;
+; Redistributions of source code must retain the above copyright notice, this
+; list of conditions and the following disclaimer.
+; Redistributions in binary form must reproduce the above copyright notice,
+; this list of conditions and the following disclaimer in the documentation
+; and/or other materials provided with the distribution.
+; Neither the name of the author nor the names of its contributors may be
+; used to endorse or promote products derived from this software without
+; specific prior written permission.
+;
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+; POSSIBILITY OF SUCH DAMAGE.
 
 (use bindings)
 
@@ -108,6 +139,13 @@
   (lambda (cell)
     (bind (i j) cell
       (list i (modulo j height)))))
+
+(define ((within-bounds? grid-size) cell)
+  (bind-let (((grid-width grid-height) grid-size)
+             ((i j) cell))
+    (assert (positive-integers? grid-width grid-height))
+    (and (<= 0 i) (< i grid-width)
+         (<= 0 j) (< j grid-height))))
 
 ; Copied for reference.
 ;    ...   1,1   2,1   0,1   1,1   2,1   0,1   1,1   ...
@@ -226,16 +264,20 @@
     (list rect-width rect-height i% j% x%% y%%)))
 
 ; In counter-clockwise order, assuming center at 0,0 and radius 1.
-(define hex-verts
+(define normalized-hex-verts
   (let ((ir inner-radius))
     `((,ir -1/2) (,ir 1/2) (0 1) (,(- ir) 1/2) (,(- ir) -1/2) (0 -1))))
 
-(define ((within-bounds? grid-size) cell)
-  (bind-let (((grid-width grid-height) grid-size)
-             ((i j) cell))
-    (assert (positive-integers? grid-width grid-height))
-    (and (<= 0 i) (< i grid-width)
-         (<= 0 j) (< j grid-height))))
+(define (hex-verts origin hex-radius)
+  (let ((g->w (grid->world origin hex-radius)))
+    (lambda (cell)
+      (bind (x y) (g->w cell)
+        (map
+          (lambda (v)
+            (bind (vx vy) v
+              (list (+ x (* vx hex-radius))
+                    (+ y (* vy hex-radius)))))
+          normalized-hex-verts)))))
 
 (def2 (distance grid-width grid-height grid-size)
   (lambda (cell other)

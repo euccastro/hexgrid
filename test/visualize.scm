@@ -32,6 +32,36 @@
 ;
 ;  - You may notice some lag while dragging the mouse.  This is caused by how
 ;    I poll for events in SDL, not by inefficiencies in the hexgrid module.
+;
+; License (BSD)
+; -------------
+;
+; Copyright (C) 2013, Estevo U. C. Castro  <euccastro@gmail.com>
+; All rights reserved.
+
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions are met:
+
+; Redistributions of source code must retain the above copyright notice, this
+; list of conditions and the following disclaimer.
+; Redistributions in binary form must reproduce the above copyright notice,
+; this list of conditions and the following disclaimer in the documentation
+; and/or other materials provided with the distribution.
+; Neither the name of the author nor the names of its contributors may be
+; used to endorse or promote products derived from this software without
+; specific prior written permission.
+
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+; POSSIBILITY OF SUCH DAMAGE.
 
 (load "hexgrid-module.scm")
 (import hexgrid)
@@ -48,41 +78,54 @@
 
 (define hex-radius (radius-to-fit gsize window-size 20))
 
-(define orig (origin-to-center gsize hex-radius window-size))
+(define origin (origin-to-center gsize hex-radius window-size))
 
 ; Make local curried versions of various functions sensitive to gsize, orig,
 ; and hex-radius.
 (define wrap (compose (horizontal-wrapper gwidth) (vertical-wrapper gheight)))
-(define within-bounds? (within-bounds? gsize))
-(define distance (distance gsize))
-(define grid->world (grid->world orig hex-radius))
-(define world->grid (world->grid orig hex-radius))
+(define in-bounds? (within-bounds? gsize))
+(define dist (distance gsize))
+(define g->w (grid->world origin hex-radius))
+(define w->g (world->grid origin hex-radius))
 
 (define (draw-grid)
   (gl:Color3f 1.0 1.0 1.0)
   (do-ec (: i gwidth)
          (: j gheight)
-         (draw-hex gl:LINE_LOOP (list i j)))
+         ; Draw every other row with a different method, to show they're
+         ; equivalent.
+         ((if (even? j)
+            draw-hex-with-opengl-transform
+            draw-hex-with-hexgrid-transform)
+          gl:LINE_LOOP (list i j)))
   (when mouseover
     (apply gl:Color3f
-           (if (within-bounds? mouseover)
+           (if (in-bounds? mouseover)
              '(1.0 1.0 0.0)
              '(0.0 1.0 1.0)))
-    (draw-hex gl:POLYGON mouseover))
+    (draw-hex-with-opengl-transform gl:POLYGON mouseover))
   (when selected
     (gl:Color3f 1.0 1.0 1.0)
-    (draw-hex gl:POLYGON selected)))
+    (draw-hex-with-hexgrid-transform gl:POLYGON selected)))
 
-(define (draw-hex gl-type cell)
+(define (draw-hex-with-opengl-transform gl-type cell)
   (gl:LoadIdentity)
-  (bind (x y) (grid->world cell)
+  (bind (x y) (g->w cell)
     (gl:Translatef x y 0))
   (gl:Scalef hex-radius hex-radius 0)
+  (draw-verts gl-type normalized-hex-verts))
+
+(define hv (hex-verts origin hex-radius))
+(define (draw-hex-with-hexgrid-transform gl-type cell)
+  (gl:LoadIdentity)
+  (draw-verts gl-type (hv cell)))
+
+(define (draw-verts gl-type verts)
   (gl:Begin gl-type)
   (for-each
     (lambda (v)
       (apply gl:Vertex2f v))
-    hex-verts)
+    verts)
   (gl:End))
 
 (define ev (make-sdl-event))
@@ -92,7 +135,7 @@
 (define selected '(0 0))
 
 (define (cell-under-mouse sdl-ev)
-  (world->grid
+  (w->g
     (list
       (sdl-event-x ev)
       ; SDL has y downwards.
@@ -105,7 +148,7 @@
     (display (distance-nowrap mouseover selected))
     (newline)
     (display "Distance with cut-around is: ")
-    (display (distance mouseover selected))
+    (display (dist mouseover selected))
     (newline)))
 
 (sdl-init SDL_INIT_VIDEO)

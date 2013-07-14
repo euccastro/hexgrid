@@ -10,6 +10,7 @@
    indexer
    inner-radius
    make-grid-vector
+   normalized-hex-verts
    northeast
    northwest
    origin-to-center

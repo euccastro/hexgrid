@@ -1,5 +1,4 @@
 ((license "BSD")
- (hidden)
  (category graphics)
  (needs bindings)
  (test-depends sdl-base gl srfi-42 bindings test)
